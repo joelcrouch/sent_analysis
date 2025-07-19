@@ -88,11 +88,15 @@ class SentimentProcessor:
         axes[1, 0].set_ylabel('Average Sentiment Score')
         axes[1, 0].legend(title='Query')
 
-        # 4. Top authors
-        top_authors = df['author'].value_counts().head(10)
-        top_authors.plot(kind='barh', ax=axes[1, 1], color='lightcoral')
-        axes[1, 1].set_title('Top Authors by Number of Posts')
-        axes[1, 1].set_xlabel('Number of Posts')
+        # 4. Sentiment by Source
+        df['query_source'] = df['query'] + ' - ' + df['source']
+        sentiment_by_source = df.groupby(['query_source', 'sentiment_category']).size().unstack(fill_value=0)
+        sentiment_by_source.plot(kind='bar', ax=axes[1, 1], colormap='viridis')
+        axes[1, 1].set_title('Sentiment Distribution by Source')
+        axes[1, 1].set_xlabel('Query and Source')
+        axes[1, 1].set_ylabel('Number of Posts')
+        axes[1, 1].legend(title='Sentiment')
+        axes[1, 1].tick_params(axis='x', rotation=45)
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         chart_filename = f"{timestamp}_sentiment_charts.png"
@@ -102,6 +106,57 @@ class SentimentProcessor:
 
         plt.tight_layout()
         plt.show()
+
+    def create_detailed_trend_chart(self, df):
+        """Create a more detailed sentiment trend chart with a rolling average."""
+        if df.empty or 'created_at' not in df.columns:
+            return
+
+        plt.style.use('seaborn-v0_8-whitegrid')
+        fig, ax = plt.subplots(figsize=(18, 10))
+
+        # Ensure 'date' column exists
+        if 'date' not in df.columns:
+            df['date'] = pd.to_datetime(df['created_at'], utc=True).dt.date
+        
+        sentiment_over_time = df.groupby(['date', 'query'])['vader_compound'].mean().unstack()
+
+        if sentiment_over_time.empty:
+            print("No time-series data to plot for detailed trend chart.")
+            return
+
+        # Plot original daily data for each query
+        for query in sentiment_over_time.columns:
+            ax.plot(sentiment_over_time.index, sentiment_over_time[query], marker='o', linestyle='-', alpha=0.5, label=f'{query} (Daily)')
+
+        # Plot 7-day rolling average for each query
+        for query in sentiment_over_time.columns:
+            rolling_avg = sentiment_over_time[query].rolling(window=7, min_periods=1).mean()
+            ax.plot(sentiment_over_time.index, rolling_avg, linestyle='--', linewidth=2.5, label=f'{query} (7-Day Avg)')
+
+        ax.set_title('Detailed Sentiment Trend Over Time', fontsize=20)
+        ax.set_xlabel('Date', fontsize=14)
+        ax.set_ylabel('Average VADER Compound Score', fontsize=14)
+        
+        # Improve legend
+        handles, labels = ax.get_legend_handles_labels()
+        ax.legend(handles, labels, title='Query', bbox_to_anchor=(1.05, 1), loc='upper left')
+
+        ax.axhline(0, color='black', linewidth=0.8, linestyle='--') # Add a line for neutral sentiment
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        chart_filename = f"{timestamp}_detailed_sentiment_trend.png"
+        
+        try:
+            fig.savefig(chart_filename, dpi=300, bbox_inches='tight', facecolor='white')
+            print(f"Detailed trend chart saved to {chart_filename}")
+        except Exception as e:
+            print(f"Error saving detailed trend chart: {e}")
+
+        plt.tight_layout()
+        plt.show()
+
+    
 
     def save_results(self, df, filename=None):
         """Save results to CSV with timestamp"""
