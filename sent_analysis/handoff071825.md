@@ -36,7 +36,7 @@ The next major goal is to expand data collection to include established news out
         *   Use the NYT API key to authenticate.
         *   Fetch articles based on the existing search queries (`UAE`, `Qatar`).
         *   Parse the API response and format the data into the project's standard dictionary structure (including `source`, `id`, `text`, `author`, `created_at`, etc.).
-    *   **Install Dependencies:** The `requests` library is likely sufficient, but i will confirm if any other packages are needed.
+    *   **Install Dependencies:** The `requests` library is likely sufficient, but i will confirm if any other packages are needed....
 
 3.  **Integrate into `main.py`:**
     *   The new `nytimes_collector` will be imported and called from `main.py`.
