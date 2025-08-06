@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 from collectors.reddit_collector import collect_reddit_data
 from collectors.bluesky_collector import collect_bluesky_data
+from collectors.youtube_collector import collect_youtube_data
 
 from processor.sentiment_analyzer import SentimentProcessor
 
@@ -54,6 +55,23 @@ def main():
     else:
         print("Bluesky credentials not found. Skipping Bluesky.")
 
+    # Load YouTube credentials from .env file
+    YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
+
+    # Collect from YouTube
+    if YOUTUBE_API_KEY:
+        print("\n--- Collecting data from YouTube ---")
+        for query in queries:
+            youtube_data = collect_youtube_data(
+                api_key=YOUTUBE_API_KEY,
+                query=query,
+                max_videos=5,
+                max_comments_per_video=50
+            )
+            all_data.extend(youtube_data)
+    else:
+        print("YouTube API key not found. Skipping YouTube.")
+
     if not all_data:
         print("No data was collected. Exiting.")
         return
@@ -66,6 +84,9 @@ def main():
     
     # Perform the main analysis and generate charts
     processor.analyze_and_visualize(results_df)
+    processor.create_detailed_trend_chart(results_df)
+    
+    
     
     # Save the final results to a CSV
     processor.save_results(results_df)
